@@ -87,9 +87,9 @@ namespace Library.API.Services
         public IEnumerable<Book> GetBooksForAuthor(Guid authorId)
         {
             return _context.Books
-                .Where(b => b.AuthorId == authorId)
-                .OrderBy(b => b.Title)
-                .ToList();
+                 .Where(b => b.AuthorId == authorId)
+                 .OrderBy(b => b.Title)
+                 .ToList();
         }
 
         public bool Save()
