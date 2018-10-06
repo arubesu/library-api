@@ -76,8 +76,11 @@ namespace Library.API
                 $"{src.FirstName} {src.LastName}"))
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src =>
                 src.DateOfBirth.GetCurrentAge()));
+                cfg.CreateMap<AuthorForCreationDto, Author>();
 
                 cfg.CreateMap<Book, BookDto>();
+                cfg.CreateMap<BookDto, Book>();
+                cfg.CreateMap<BookForCreationDto, Book>();
             });
 
 
