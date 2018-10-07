@@ -17,14 +17,14 @@ namespace Library.API.Services
 
         public void AddAuthor(Author author)
         {
-            author.Id = new Guid();
+            author.Id = Guid.NewGuid();
             _context.Authors.Add(author);
 
             if (author.Books.Any())
             {
                 foreach (var book in author.Books)
                 {
-                    book.Id = new Guid();
+                    book.Id = Guid.NewGuid();
                 }
             }
         }
