@@ -59,7 +59,7 @@ namespace Library.API.Controllers
 
             if (!_repository.Save())
             {
-                return StatusCode(500);
+                throw new Exception("Failed on save this author.");
             }
 
             var authorToReturn = Mapper.Map<AuthorDto>(entity);

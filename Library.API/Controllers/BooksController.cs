@@ -74,7 +74,7 @@ namespace Library.API.Controllers
 
             if (!_repository.Save())
             {
-                return StatusCode(500);
+                throw new Exception("Failed on creating this book.");
             }
 
             var bookToReturn = Mapper.Map<BookDto>(entity);
