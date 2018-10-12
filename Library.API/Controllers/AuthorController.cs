@@ -31,7 +31,7 @@ namespace Library.API.Controllers
             return Ok(authors);
         }
 
-        [HttpGet("{id}" , Name = "GetAuthor")]
+        [HttpGet("{id}", Name = "GetAuthor")]
         public IActionResult GetAuthor(Guid id)
         {
             var authorFromRepo = _repository.GetAuthor(id);
@@ -46,8 +46,8 @@ namespace Library.API.Controllers
             return Ok(author);
         }
 
-       [HttpPost()]
-       public IActionResult CreateAuthor([FromBody] AuthorForCreationDto authorDto)
+        [HttpPost()]
+        public IActionResult CreateAuthor([FromBody] AuthorForCreationDto authorDto)
         {
             if (authorDto == null)
             {
@@ -77,6 +77,26 @@ namespace Library.API.Controllers
             }
 
             return NotFound();
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult DeleteAuthor(Guid id)
+        {
+            var authorFromRepo = _repository.GetAuthor(id);
+
+            if (authorFromRepo == null)
+            {
+                return NotFound();
+            }
+
+            _repository.DeleteAuthor(authorFromRepo);
+
+            if (!_repository.Save())
+            {
+                throw new Exception($"Failed on deleting Author {id}.");
+            }
+
+            return NoContent();
         }
     }
 }
