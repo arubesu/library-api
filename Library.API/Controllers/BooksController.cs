@@ -2,6 +2,7 @@
 using Library.API.Entities;
 using Library.API.Models;
 using Library.API.Services;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -153,5 +154,43 @@ namespace Library.API.Controllers
 
             return NoContent();
         }
+
+        [HttpPatch("{id}")]
+        public IActionResult PartiallyUpdateBookForAuthor(Guid authorId, Guid id,
+            [FromBody] JsonPatchDocument<BookForUpdateDto> patchDoc)
+        {
+            if (patchDoc == null)
+            {
+                return BadRequest();
+            }
+
+            if (!_repository.AuthorExists(authorId))
+            {
+                return NotFound();
+            }
+
+            var bookFromRepo = _repository.GetBookForAuthor(authorId, id);
+
+            if (bookFromRepo == null)
+            {
+                return NotFound();
+            }
+
+            var bookToPatch = Mapper.Map<BookForUpdateDto>(bookFromRepo);
+            patchDoc.ApplyTo(bookToPatch);
+
+            Mapper.Map(bookToPatch, bookFromRepo);
+
+            _repository.UpdateBookForAuthor(bookFromRepo);
+
+            if (!_repository.Save())
+            {
+                throw new Exception($"Failed on patching book {id} for author {authorId}");
+            }
+
+            return NoContent();
+
+        }
+
     }
 }
