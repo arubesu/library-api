@@ -99,12 +99,12 @@ namespace Library.API.Services
 
         public void UpdateAuthor(Author author)
         {
-            throw new NotImplementedException();
+            // no code in this implementation
         }
 
         public void UpdateBookForAuthor(Book book)
         {
-            throw new NotImplementedException();
+            // no code in this implementation
         }
     }
 }

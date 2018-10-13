@@ -82,6 +82,7 @@ namespace Library.API
                 cfg.CreateMap<Book, BookDto>();
                 cfg.CreateMap<BookDto, Book>();
                 cfg.CreateMap<BookForCreationDto, Book>();
+                cfg.CreateMap<BookForUpdateDto, Book>();
             });
 
 
