@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Library.API.Entities;
+using Library.API.Helpers;
 using Library.API.Models;
 using Library.API.Services;
 using Microsoft.AspNetCore.JsonPatch;
@@ -62,6 +63,11 @@ namespace Library.API.Controllers
             if (bookDto == null)
             {
                 return BadRequest();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return new UnprocessabelEntityObjectResult(ModelState);
             }
 
             if (!_repository.AuthorExists(authorId))
@@ -145,6 +151,11 @@ namespace Library.API.Controllers
 
             Mapper.Map(bookDto, bookFromRepo);
 
+            if (!ModelState.IsValid)
+            {
+                return new UnprocessabelEntityObjectResult(ModelState);
+            }
+
             _repository.UpdateBookForAuthor(bookFromRepo);
 
             if (!_repository.Save())
@@ -193,7 +204,15 @@ namespace Library.API.Controllers
             }
 
             var bookToPatch = Mapper.Map<BookForUpdateDto>(bookFromRepo);
-            patchDoc.ApplyTo(bookToPatch);
+            patchDoc.ApplyTo(bookToPatch, ModelState);
+
+
+            TryValidateModel(bookToPatch);
+
+            if (!ModelState.IsValid)
+            {
+                return new UnprocessabelEntityObjectResult(ModelState);
+            }
 
             Mapper.Map(bookToPatch, bookFromRepo);
 
