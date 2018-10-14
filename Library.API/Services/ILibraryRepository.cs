@@ -1,4 +1,5 @@
 ﻿using Library.API.Entities;
+using Library.API.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ namespace Library.API.Services
 {
     public interface ILibraryRepository
     {
-        IEnumerable<Author> GetAuthors();
+        PagedList<Author> GetAuthors(AuthorsResourceParameters authorsResourceParameters);
         Author GetAuthor(Guid authorId);
         IEnumerable<Author> GetAuthors(IEnumerable<Guid> authorIds);
         void AddAuthor(Author author);
