@@ -13,12 +13,12 @@ using System.Threading.Tasks;
 namespace Library.API.Controllers
 {
     [Route("api/authors")]
-    public class AuthorController : Controller
+    public class AuthorsController : Controller
     {
         private readonly ILibraryRepository _repository;
         private readonly IUrlHelper _urlhelper;
 
-        public AuthorController(ILibraryRepository repository,
+        public AuthorsController(ILibraryRepository repository,
             IUrlHelper urlHelper)
         {
             _repository = repository;
@@ -63,6 +63,7 @@ namespace Library.API.Controllers
                     return _urlhelper.Link("GetAuthors",
                         new
                         {
+                            genre = authorsResourceParameters.Genre,
                             pageNumber = authorsResourceParameters.PageNumber - 1,
                             pageSize = authorsResourceParameters.PageSize
                         });
@@ -70,6 +71,7 @@ namespace Library.API.Controllers
                     return _urlhelper.Link("GetAuthors",
                       new
                       {
+                          genre = authorsResourceParameters.Genre,
                           pageNumber = authorsResourceParameters.PageNumber + 1,
                           pageSize = authorsResourceParameters.PageSize
                       });
@@ -78,6 +80,7 @@ namespace Library.API.Controllers
                     return _urlhelper.Link("GetAuthors",
                       new
                       {
+                          genre = authorsResourceParameters.Genre,
                           pageNumber = authorsResourceParameters.PageNumber,
                           pageSize = authorsResourceParameters.PageSize
                       });
