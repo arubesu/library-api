@@ -46,27 +46,130 @@ namespace Library.API.Controllers
 
             var authorsFromRepo = _repository.GetAuthors(authorsResourceParameters);
 
-            var previousPageLink = authorsFromRepo.HasPrevious ?
-                CreateAuthorsResourceUri(authorsResourceParameters, ResourceUriType.PreviousPage) : null;
-
-            var nextPageLink = authorsFromRepo.HasNext ?
-               CreateAuthorsResourceUri(authorsResourceParameters, ResourceUriType.NextPage) : null;
-
             var paginationMetaData = new
             {
                 totalCount = authorsFromRepo.TotalCount,
                 pageSize = authorsFromRepo.PageSize,
                 currentPage = authorsFromRepo.CurrentPage,
-                totalPages = authorsFromRepo.TotalPages,
-                PreviousPageLink = previousPageLink,
-                NextPageLink = nextPageLink
+                totalPages = authorsFromRepo.TotalPages
             };
 
             Response.Headers.Add("X-Pagination",
                 Newtonsoft.Json.JsonConvert.SerializeObject(paginationMetaData));
 
             var authors = Mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo);
-            return Ok(authors.ShapeData(authorsResourceParameters.Fields));
+
+            var links = CreateLinksForAuthors(authorsResourceParameters,
+                authorsFromRepo.HasPrevious, authorsFromRepo.HasNext);
+
+            var shapedAuthors = authors.ShapeData(authorsResourceParameters.Fields);
+
+            var shapedAuthorsWithLinks = shapedAuthors.Select(author =>
+            {
+                var authorAsDictionary = author as IDictionary<string, object>;
+                var authorLinks = CreateLinksForAuthor(
+                    (Guid)authorAsDictionary["Id"], authorsResourceParameters.Fields);
+
+                authorAsDictionary.Add("links", authorLinks);
+
+                return authorAsDictionary;
+            });
+
+            var linkedCollectionResource = new
+            {
+                value = shapedAuthorsWithLinks,
+                links
+            };
+
+            return Ok(linkedCollectionResource);
+        }
+
+        [HttpGet("{id}", Name = "GetAuthor")]
+        public IActionResult GetAuthor(Guid id, [FromQuery] string fields)
+        {
+            if (!_typeHelperService.TypeHasProperties<AuthorDto>
+             (fields))
+            {
+                return BadRequest();
+            }
+
+            var authorFromRepo = _repository.GetAuthor(id);
+
+            if (authorFromRepo == null)
+            {
+                return NotFound();
+            }
+
+            var author = Mapper.Map<AuthorDto>(authorFromRepo);
+
+            var links = CreateLinksForAuthor(id, fields);
+
+            var linkedResourceToReturn = author.ShapeData(fields)
+                as IDictionary<string, object>;
+
+            linkedResourceToReturn.Add("links", links);
+
+            return Ok(linkedResourceToReturn);
+        }
+
+        [HttpPost(Name = "CreateAuthor")]
+        public IActionResult CreateAuthor([FromBody] AuthorForCreationDto authorDto)
+        {
+            if (authorDto == null)
+            {
+                return BadRequest();
+            }
+
+            var entity = Mapper.Map<Author>(authorDto);
+
+            _repository.AddAuthor(entity);
+
+            if (!_repository.Save())
+            {
+                throw new Exception("Failed on save this author.");
+            }
+
+            var authorToReturn = Mapper.Map<AuthorDto>(entity);
+
+            var links = CreateLinksForAuthor(authorToReturn.Id, null);
+
+            var linkedResourceToReturn = authorToReturn.ShapeData(null)
+                as IDictionary<string, object>;
+
+            linkedResourceToReturn.Add("links", links);
+
+            return CreatedAtRoute("GetAuthor", new { id = linkedResourceToReturn["Id"] }, linkedResourceToReturn);
+        }
+
+        [HttpPost("{id}")]
+        public IActionResult BlockExistingAuthorPost(Guid id)
+        {
+            if (_repository.AuthorExists(id))
+            {
+                return new StatusCodeResult(StatusCodes.Status409Conflict);
+            }
+
+            return NotFound();
+        }
+
+        [HttpDelete("{id}", Name = "DeleteAuthor")]
+        public IActionResult DeleteAuthor(Guid id)
+        {
+            var authorFromRepo = _repository.GetAuthor(id);
+
+            if (authorFromRepo == null)
+            {
+                return NotFound();
+            }
+
+            _repository.DeleteAuthor(authorFromRepo);
+
+            if (!_repository.Save())
+            {
+                throw new Exception($"Failed on deleting Author {id}.");
+            }
+
+            return NoContent();
         }
 
         private string CreateAuthorsResourceUri(
@@ -98,6 +201,7 @@ namespace Library.API.Controllers
                           pageSize = authorsResourceParameters.PageSize
                       });
 
+                case ResourceUriType.Current:
                 default:
                     return _urlhelper.Link("GetAuthors",
                       new
@@ -112,78 +216,70 @@ namespace Library.API.Controllers
             }
         }
 
-        [HttpGet("{id}", Name = "GetAuthor")]
-        public IActionResult GetAuthor(Guid id, [FromQuery] string fields)
+        private IEnumerable<LinkDto> CreateLinksForAuthor(Guid id, string fields)
         {
-            if (!_typeHelperService.TypeHasProperties<AuthorDto>
-             (fields))
+            var links = new List<LinkDto>();
+
+            if (string.IsNullOrEmpty(fields))
             {
-                return BadRequest();
+                links.Add(new LinkDto(
+                    _urlhelper.Link("GetAuthor", new { id }),
+                    "self",
+                    "GET"));
+            }
+            else
+            {
+                links.Add(new LinkDto(
+                    _urlhelper.Link("GetAuthor", new { id, fields }),
+                    "self",
+                    "GET"));
             }
 
-            var authorFromRepo = _repository.GetAuthor(id);
+            links.Add(new LinkDto(
+                   _urlhelper.Link("DeleteAuthor", new { id }),
+                   "delete_author",
+                   "DELETE"));
 
-            if (authorFromRepo == null)
-            {
-                return NotFound();
-            }
+            links.Add(new LinkDto(
+                   _urlhelper.Link("CreateBookForAuthor", new { authorId = id }),
+                   "create_book_for_author",
+                   "POST"));
 
-            var author = Mapper.Map<AuthorDto>(authorFromRepo);
+            links.Add(new LinkDto(
+                   _urlhelper.Link("GetBooks", new { authorId = id }),
+                   "books",
+                   "GET"));
 
-            return Ok(author.ShapeData(fields));
+            return links;
         }
 
-        [HttpPost()]
-        public IActionResult CreateAuthor([FromBody] AuthorForCreationDto authorDto)
+        private IEnumerable<LinkDto> CreateLinksForAuthors(
+            AuthorsResourceParameters authorsResourceParameters,
+            bool hasPrevious, bool hasNext)
         {
-            if (authorDto == null)
+            var links = new List<LinkDto>();
+
+            links.Add(
+                new LinkDto(CreateAuthorsResourceUri(authorsResourceParameters,
+                    ResourceUriType.Current),
+                    "self", "GET"));
+            if (hasNext)
             {
-                return BadRequest();
+                links.Add(
+                new LinkDto(CreateAuthorsResourceUri(authorsResourceParameters,
+                    ResourceUriType.NextPage),
+                    "nextPage", "GET"));
             }
 
-            var entity = Mapper.Map<Author>(authorDto);
-
-            _repository.AddAuthor(entity);
-
-            if (!_repository.Save())
+            if (hasPrevious)
             {
-                throw new Exception("Failed on save this author.");
+                links.Add(
+               new LinkDto(CreateAuthorsResourceUri(authorsResourceParameters,
+                   ResourceUriType.PreviousPage),
+                   "previousPage", "GET"));
             }
 
-            var authorToReturn = Mapper.Map<AuthorDto>(entity);
-
-            return CreatedAtRoute("GetAuthor", new { id = authorToReturn.Id }, authorToReturn);
-        }
-
-        [HttpPost("{id}")]
-        public IActionResult BlockExistingAuthorPost(Guid id)
-        {
-            if (_repository.AuthorExists(id))
-            {
-                return new StatusCodeResult(StatusCodes.Status409Conflict);
-            }
-
-            return NotFound();
-        }
-
-        [HttpDelete("{id}")]
-        public IActionResult DeleteAuthor(Guid id)
-        {
-            var authorFromRepo = _repository.GetAuthor(id);
-
-            if (authorFromRepo == null)
-            {
-                return NotFound();
-            }
-
-            _repository.DeleteAuthor(authorFromRepo);
-
-            if (!_repository.Save())
-            {
-                throw new Exception($"Failed on deleting Author {id}.");
-            }
-
-            return NoContent();
+            return links;
         }
     }
 }
