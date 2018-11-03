@@ -143,7 +143,40 @@ namespace Library.API.Controllers
         }
 
         [HttpPost(Name = "CreateAuthor")]
+        [RequestHeaderMatchesMediaType("Content-Type",
+            new[] { "application/vnd.arubesu.author.full+json" })]
         public IActionResult CreateAuthor([FromBody] AuthorForCreationDto authorDto)
+        {
+            if (authorDto == null)
+            {
+                return BadRequest();
+            }
+
+            var entity = Mapper.Map<Author>(authorDto);
+
+            _repository.AddAuthor(entity);
+
+            if (!_repository.Save())
+            {
+                throw new Exception("Failed on save this author.");
+            }
+
+            var authorToReturn = Mapper.Map<AuthorDto>(entity);
+
+            var links = CreateLinksForAuthor(authorToReturn.Id, null);
+
+            var linkedResourceToReturn = authorToReturn.ShapeData(null)
+                as IDictionary<string, object>;
+
+            linkedResourceToReturn.Add("links", links);
+
+            return CreatedAtRoute("GetAuthor", new { id = linkedResourceToReturn["Id"] }, linkedResourceToReturn);
+        }
+
+        [HttpPost(Name = "CreateAuthorWithDateOfDeath")]
+        [RequestHeaderMatchesMediaType("Content-type",
+            new [] { "application/vnd.arubesu.authorwithdateofdeath.full+json"})]
+        public IActionResult CreateAuthorWithDateOfDeath([FromBody] AuthorWithDateOfDeathDto authorDto)
         {
             if (authorDto == null)
             {
