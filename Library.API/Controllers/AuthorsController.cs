@@ -175,7 +175,8 @@ namespace Library.API.Controllers
 
         [HttpPost(Name = "CreateAuthorWithDateOfDeath")]
         [RequestHeaderMatchesMediaType("Content-type",
-            new [] { "application/vnd.arubesu.authorwithdateofdeath.full+json"})]
+            new[] { "application/vnd.arubesu.authorwithdateofdeath.full+json" ,
+                    "application/vnd.arubesu.authorwithdateofdeath.full+xml"})]
         public IActionResult CreateAuthorWithDateOfDeath([FromBody] AuthorWithDateOfDeathDto authorDto)
         {
             if (authorDto == null)
