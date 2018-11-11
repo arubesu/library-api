@@ -244,7 +244,8 @@ namespace Library.API.Controllers
 
         }
 
-        public BookDto CreateLinksForBook(BookDto book)
+        
+        private BookDto CreateLinksForBook(BookDto book)
         {
             book.Links.Add(new LinkDto(
                 _urlHelper.Link("GetBook",
@@ -273,7 +274,7 @@ namespace Library.API.Controllers
             return book;
         }
 
-        public LinkedCollectionResourceWrapperDto<BookDto> CreateLinksForBooks(
+        private LinkedCollectionResourceWrapperDto<BookDto> CreateLinksForBooks(
             LinkedCollectionResourceWrapperDto<BookDto> booksWrapper)
         {
             booksWrapper.Links.Add(

@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Serialization;
 using Marvin.Cache.Headers;
 using AspNetCoreRateLimit;
+using Swashbuckle.AspNetCore.Swagger;
 
 namespace Library.API
 {
@@ -114,6 +115,13 @@ namespace Library.API
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 
+            // Register the Swagger generator
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Info { Title = "Library API", Version = "v1" });
+                c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+            });
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -162,6 +170,12 @@ namespace Library.API
                 cfg.CreateMap<Book, BookForUpdateDto>();
             });
 
+            app.UseSwagger();
+
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Library API V1");
+            });
 
             libraryContext.EnsureSeedDataForContext();
 
