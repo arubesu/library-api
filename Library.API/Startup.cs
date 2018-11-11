@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using AutoMapper;
 using Library.API.Entities;
 using Library.API.Helpers;
@@ -20,7 +17,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Serialization;
-using NLog.Extensions.Logging;
+using Marvin.Cache.Headers;
 
 namespace Library.API
 {
@@ -35,14 +32,13 @@ namespace Library.API
 
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc(setupAction =>
             {
                 setupAction.ReturnHttpNotAcceptable = true;
                 setupAction.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());
-                
+
 
                 var xmlDataContractSerializerInputFormatter =
                 new XmlDataContractSerializerInputFormatter();
@@ -95,7 +91,14 @@ namespace Library.API
 
             services.AddTransient<IPropertyMappingService, PropertyMappingService>();
             services.AddTransient<ITypeHelperService, TypeHelperService>();
+            services.AddHttpCacheHeaders(
+                (ExpirationModelOptions) =>
+                    { ExpirationModelOptions.MaxAge = 600; },
+                (validationModelOptions) =>
+                    { validationModelOptions.MustRevalidate = true; }
+           );
 
+            services.AddResponseCaching();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -146,6 +149,11 @@ namespace Library.API
 
 
             libraryContext.EnsureSeedDataForContext();
+
+            app.UseResponseCaching();
+
+            app.UseHttpCacheHeaders();
+
             app.UseMvc();
         }
     }
